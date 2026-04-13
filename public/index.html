@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Sistema de Evaluación Clínica</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+</head>
+<body>
+  <div class="contenedor-principal">
+    <h2>SISTEMA DE EVALUACIÓN CLÍNICA</h2>
+    
+    <div id="menu">
+      <button onclick="mostrarConsentimiento(1)">CONSENTIMIENTO 1</button>
+      <button onclick="mostrarConsentimiento(2)">CONSENTIMIENTO 2</button>
+      <button onclick="mostrarHistoria()">REGISTRAR HISTORIA CLÍNICA</button>
+      <button onclick="mostrarCedulaEncuesta()">REALIZAR ENCUESTA</button>
+    </div>
+
+    <!-- HISTORIA CLÍNICA -->
+    <div id="historia" class="pantalla">
+      <h3>Nuevo registro de paciente</h3>
+      <input type="text" id="nombre" placeholder="Nombres completos">
+      <input type="text" id="apellidos" placeholder="Apellidos completos">
+      <input type="number" id="cedula" placeholder="Número de cédula">
+      <input type="date" id="fecha">
+      <input type="number" id="contacto" placeholder="Teléfono de contacto">
+      <select id="eps"></select>
+      
+      <label>Sexo:</label>
+      <select id="sexo">
+        <option value="">-- Seleccione --</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Femenino">Femenino</option>
+        <option value="Otro">Otro</option>
+      </select>
+      
+      <label>Semestre que cursa actualmente:</label>
+      <input type="number" id="semestre" placeholder="1 a 9" min="1" max="9">
+      
+      <hr>
+      
+      <label>¿Presenta enfermedades sistémicas?</label>
+      <select id="enfermedadesSistemicas">
+        <option value="">-- Seleccione --</option>
+        <option value="No">No</option>
+        <option value="Sí">Sí</option>
+      </select>
+      <div id="campoTipoEnfermedad" class="campo-condicional">
+        <label>Especifique la enfermedad:</label>
+        <input type="text" id="tipoEnfermedad" placeholder="Escriba la enfermedad">
+      </div>
+      
+      <label>¿Toma medicamentos actualmente?</label>
+      <select id="tomaMedicamentos">
+        <option value="">-- Seleccione --</option>
+        <option value="No">No</option>
+        <option value="Sí">Sí</option>
+      </select>
+      <div id="campoTipoMedicamento" class="campo-condicional">
+        <label>Especifique el medicamento:</label>
+        <input type="text" id="tipoMedicamento" placeholder="Escriba el medicamento">
+      </div>
+      
+      <label>¿Presenta antecedentes de enfermedades psicológicas?</label>
+      <select id="antecedentesPsicologicos">
+        <option value="">-- Seleccione --</option>
+        <option value="No">No</option>
+        <option value="Sí">Sí</option>
+      </select>
+      <div id="campoTipoPsicologico" class="campo-condicional">
+        <label>Especifique la enfermedad psicológica:</label>
+        <input type="text" id="tipoEnfermedadPsicologica" placeholder="Escriba la enfermedad">
+      </div>
+      
+      <label>¿Presenta hábitos que generen lesiones orales?</label>
+      <div class="campo-checkbox-group" id="habitosOralesGroup">
+        <label><input type="checkbox" id="habitoNo" value="No"> No</label>
+        <label><input type="checkbox" id="habitoLabios" value="Mordedura de labios"> Mordedura de labios</label>
+        <label><input type="checkbox" id="habitoMejillas" value="Mordedura de mejillas"> Mordedura de mejillas</label>
+        <label><input type="checkbox" id="habitoLengua" value="Mordedura de lengua"> Mordedura de lengua</label>
+      </div>
+      
+      <label>¿Consume sustancias psicoactivas?</label>
+      <select id="sustanciasPsicoactivas">
+        <option value="">-- Seleccione --</option>
+        <option value="No">No</option>
+        <option value="Sí">Sí</option>
+      </select>
+      <div id="campoTipoSustancia" class="campo-condicional">
+        <label>Especifique la sustancia:</label>
+        <input type="text" id="tipoSustancia" placeholder="Escriba la sustancia">
+      </div>
+      
+      <label>¿Fuma cigarrillo o vape?</label>
+      <div class="campo-radio-group" id="fumaGrupo">
+        <label><input type="radio" name="fumaOpcion" value="Cigarrillo"> Cigarrillo</label>
+        <label><input type="radio" name="fumaOpcion" value="Vape"> Vape</label>
+        <label><input type="radio" name="fumaOpcion" value="Las dos"> Las dos</label>
+        <label><input type="radio" name="fumaOpcion" value="Ninguna"> Ninguna</label>
+      </div>
+      
+      <button onclick="guardarHistoria()">Guardar registro</button>
+      <button class="secondary" onclick="volverMenu()">Cancelar</button>
+    </div>
+
+    <!-- REGISTRO EXITOSO -->
+    <div id="registroExitoso" class="pantalla">
+      <div class="mensaje exito">
+        <h3>Registro guardado correctamente</h3>
+        <p>Los datos han sido almacenados en el sistema.</p>
+      </div>
+      <button onclick="volverMenu()">Volver al inicio</button>
+    </div>
+
+    <!-- CÉDULA YA REGISTRADA -->
+    <div id="cedulaDuplicadaHistoria" class="pantalla">
+      <div class="mensaje error">
+        <h3>ERROR: Registro duplicado</h3>
+        <p>Esta cédula ya tiene una historia clínica registrada.</p>
+      </div>
+      <button onclick="volverMenu()">Volver al inicio</button>
+    </div>
+
+    <!-- CÉDULA PARA ENCUESTA -->
+    <div id="cedulaEncuesta" class="pantalla">
+      <h3>Verificar paciente</h3>
+      <input type="number" id="cedulaEncuestaInput" placeholder="Ingrese el número de cédula">
+      <button onclick="validarCedulaEncuesta()">Continuar</button>
+      <button class="secondary" onclick="volverMenu()">Cancelar</button>
+    </div>
+
+    <!-- CÉDULA PARA CONSENTIMIENTO -->
+    <div id="cedulaConsentimiento" class="pantalla">
+      <h3 id="consentimientoTitulo">Verificar paciente</h3>
+      <input type="number" id="cedulaConsentimientoInput" placeholder="Ingrese el número de cédula">
+      <button onclick="validarCedulaConsentimiento()">Continuar</button>
+      <button class="secondary" onclick="volverMenu()">Cancelar</button>
+    </div>
+
+    <!-- SIN HISTORIA CLÍNICA -->
+    <div id="sinHistoria" class="pantalla">
+      <div class="mensaje error">
+        <h3>ERROR: Paciente no registrado</h3>
+        <p>Debe registrar primero la historia clínica.</p>
+      </div>
+      <button onclick="mostrarHistoria()">Registrar ahora</button>
+      <button class="secondary" onclick="volverMenu()">Volver</button>
+    </div>
+
+    <!-- ENCUESTA YA REALIZADA -->
+    <div id="encuestaDuplicada" class="pantalla">
+      <div class="mensaje error">
+        <h3>ERROR: Encuesta ya realizada</h3>
+        <p>Este paciente ya completó la encuesta anteriormente.</p>
+      </div>
+      <button onclick="volverMenu()">Volver al inicio</button>
+    </div>
+
+    <!-- ENCUESTA -->
+    <div id="encuesta" class="pantalla">
+      <h3>Encuesta de evaluación</h3>
+      <div id="infoPaciente" class="info-paciente">
+        <p>Paciente: <span id="nombrePaciente"></span></p>
+      </div>
+      <p style="color: #999; margin-bottom: 15px; font-size: 14px;">Seleccione una opción para cada pregunta:</p>
+      <div id="contenedorPreguntas"></div>
+      <div id="mensajeErrorPreguntas"></div>
+      <hr>
+      <button onclick="finalizarEncuesta()">Guardar respuestas</button>
+      <button class="secondary" onclick="volverMenu()">Cancelar</button>
+    </div>
+
+    <!-- ENCUESTA EXITOSA -->
+    <div id="encuestaExitosa" class="pantalla">
+      <div class="mensaje exito">
+        <h3>Encuesta guardada correctamente</h3>
+        <p>Las respuestas han sido almacenadas en el sistema.</p>
+      </div>
+      <button onclick="volverMenu()">Volver al inicio</button>
+    </div>
+
+    <!-- CONSENTIMIENTO -->
+    <div id="consentimiento" class="pantalla">
+      <h3 id="consentimientoTituloDoc">CONSENTIMIENTO INFORMADO PARA PARTICIPACIÓN EN INVESTIGACIÓN</h3>
+      <div id="infoPacienteConsentimiento" class="info-paciente">
+        <p>Paciente: <span id="nombrePacienteConsentimiento"></span></p>
+        <p>Cédula: <span id="cedulaPacienteConsentimiento"></span></p>
+        <p>Fecha: <span id="fechaConsentimiento"></span></p>
+      </div>
+      <div id="consentimientoTexto" class="consentimiento-contenido">
+        <p>Cargando consentimiento...</p>
+      </div>
+      <div class="firma-area">
+        <h4>Firma del participante:</h4>
+        <canvas id="signatureCanvas" width="500" height="200" style="width:100%; height:200px;"></canvas>
+        <div class="firma-botones">
+          <button class="secondary" onclick="limpiarFirma()">Limpiar firma</button>
+        </div>
+      </div>
+      <button id="btnGuardarConsentimiento" class="success" onclick="guardarConsentimiento()">Aceptar y guardar</button>
+      <button class="secondary" onclick="volverMenu()">Cancelar</button>
+    </div>
+
+    <!-- CONSENTIMIENTO GUARDADO EXITOSO -->
+    <div id="consentimientoExitoso" class="pantalla">
+      <div class="mensaje exito">
+        <h3>Consentimiento guardado correctamente</h3>
+        <p>La firma ha sido registrada en la historia clínica.</p>
+      </div>
+      <button onclick="volverMenu()">Volver al inicio</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
