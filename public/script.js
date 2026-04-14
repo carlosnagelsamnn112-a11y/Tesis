@@ -331,6 +331,7 @@ async function guardarConsentimiento() {
   
   const firmaDataURL = signaturePad.toDataURL();
   const cedula = document.getElementById("cedulaPacienteConsentimiento").innerHTML;
+  const fechaActual = new Date().toISOString().split('T')[0];
   
   const btn = document.getElementById("btnGuardarConsentimiento");
   const textoOriginal = btn.innerText;
@@ -343,7 +344,7 @@ async function guardarConsentimiento() {
       nombre: datosPacienteConsentimiento.nombre,
       apellidos: datosPacienteConsentimiento.apellidos,
       tipo: tipoConsentimientoActual,
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: fechaActual,
       firmaDataURL: firmaDataURL
     });
     
