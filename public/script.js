@@ -237,15 +237,21 @@ async function validarCedulaConsentimiento2() {
   }
   
   try {
+    console.log("Verificando cédula:", cedula);
+    
     // Verificar si existe el consentimiento 1
     const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
+    console.log("Consentimiento 1 firmado:", cons1Firmado);
+    
     if (!cons1Firmado) {
-      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1");
+      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1. No se encontró registro del Consentimiento 1 para esta cédula.");
       return;
     }
     
     // Verificar si ya tiene consentimiento 2 firmado
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
+    console.log("Consentimiento 2 firmado:", cons2Firmado);
+    
     if (cons2Firmado) {
       mostrarErrorEn("cons2Error", "Este paciente ya tiene el Consentimiento 2 firmado");
       return;
@@ -253,10 +259,13 @@ async function validarCedulaConsentimiento2() {
     
     // Obtener datos del paciente desde consentimiento 1
     const paciente = await llamarAPI('obtenerDatosConsentimiento', { cedula: cedula });
+    console.log("Paciente encontrado:", paciente);
+    
     datosPacienteConsentimiento = { ...paciente, cedula };
     cargarConsentimiento(paciente, cedula);
   } catch (error) {
-    mostrarErrorEn("cons2Error", error.message);
+    console.error("Error:", error);
+    mostrarErrorEn("cons2Error", "Error: " + error.message);
   }
 }
 
