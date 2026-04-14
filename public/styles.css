@@ -119,6 +119,10 @@ label {
   font-size: 14px;
 }
 
+.form-group {
+  margin-bottom: 10px;
+}
+
 .campo-condicional {
   display: none;
   margin-top: -10px;
@@ -235,7 +239,7 @@ hr {
 }
 
 .mensaje.exito {
-  border-left-color: #888888;
+  border-left-color: #00aa00;
 }
 
 .mensaje.error {
@@ -248,7 +252,7 @@ hr {
 }
 
 .mensaje.exito h3 {
-  color: #ffffff;
+  color: #00ff00;
 }
 
 .mensaje.error h3 {
@@ -260,15 +264,15 @@ hr {
   margin: 0;
 }
 
-#mensajeErrorPreguntas {
+.mensaje-error {
   color: #ff6666;
   font-size: 14px;
   margin: 15px 0 10px 0;
-  padding: 10px;
+  padding: 12px;
   background-color: #220000;
   border-radius: 6px;
   text-align: center;
-  display: none;
+  border: 1px solid #cc0000;
 }
 
 .consentimiento-contenido {
@@ -324,21 +328,6 @@ canvas {
 .firma-botones button {
   flex: 1;
   max-width: none;
-}
-
-.loading {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
-  margin-left: 10px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 600px) {
