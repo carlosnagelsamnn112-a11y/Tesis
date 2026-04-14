@@ -4,6 +4,7 @@ let preguntasCache = null;
 let signaturePad = null;
 let tipoConsentimientoActual = null;
 let epsCache = null;
+let datosPacienteConsentimiento = null;
 
 // Textos de consentimientos
 const consentimientoTextos = {
@@ -141,101 +142,235 @@ function mostrar(id) {
   document.getElementById(id).style.display = "block";
 }
 
+function mostrarError(mensaje) {
+  document.getElementById("errorTexto").innerHTML = mensaje;
+  mostrar("errorMensaje");
+}
+
 function volverMenu() {
-  limpiarFormularioHistoria();
-  limpiarEncuesta();
+  limpiarFormularios();
   pacienteActual = null;
   preguntasCache = null;
   tipoConsentimientoActual = null;
+  datosPacienteConsentimiento = null;
   if (signaturePad) signaturePad.clear();
   document.querySelectorAll(".pantalla").forEach(p => p.style.display = "none");
   document.getElementById("menu").style.display = "flex";
+  limpiarMensajesError();
 }
 
-// ========= FUNCIONES DE CAMPOS CONDICIONALES =========
-function configurarCamposCondicionales() {
-  const enfermedades = document.getElementById("enfermedadesSistemicas");
-  const medicamentos = document.getElementById("tomaMedicamentos");
-  const psicologicos = document.getElementById("antecedentesPsicologicos");
-  const sustancias = document.getElementById("sustanciasPsicoactivas");
-  const checkNo = document.getElementById("habitoNo");
-  const checkLabios = document.getElementById("habitoLabios");
-  const checkMejillas = document.getElementById("habitoMejillas");
-  const checkLengua = document.getElementById("habitoLengua");
-  
-  if (enfermedades) {
-    enfermedades.addEventListener("change", function() {
-      document.getElementById("campoTipoEnfermedad").style.display = this.value === "Sí" ? "block" : "none";
-    });
-  }
-  if (medicamentos) {
-    medicamentos.addEventListener("change", function() {
-      document.getElementById("campoTipoMedicamento").style.display = this.value === "Sí" ? "block" : "none";
-    });
-  }
-  if (psicologicos) {
-    psicologicos.addEventListener("change", function() {
-      document.getElementById("campoTipoPsicologico").style.display = this.value === "Sí" ? "block" : "none";
-    });
-  }
-  if (sustancias) {
-    sustancias.addEventListener("change", function() {
-      document.getElementById("campoTipoSustancia").style.display = this.value === "Sí" ? "block" : "none";
-    });
-  }
-  if (checkNo) {
-    checkNo.addEventListener("change", function() {
-      if (this.checked) {
-        checkLabios.checked = false;
-        checkMejillas.checked = false;
-        checkLengua.checked = false;
-      }
-    });
-  }
-  const otrosHabitos = [checkLabios, checkMejillas, checkLengua];
-  otrosHabitos.forEach(chk => {
-    if (chk) {
-      chk.addEventListener("change", function() {
-        if (this.checked && checkNo && checkNo.checked) {
-          checkNo.checked = false;
-        }
-      });
-    }
-  });
+function limpiarMensajesError() {
+  const errores = document.querySelectorAll('.mensaje-error');
+  errores.forEach(e => e.style.display = 'none');
 }
 
-function obtenerHabitosSeleccionados() {
-  const habitos = [];
-  if (document.getElementById("habitoNo")?.checked) habitos.push("No");
-  if (document.getElementById("habitoLabios")?.checked) habitos.push("Mordedura de labios");
-  if (document.getElementById("habitoMejillas")?.checked) habitos.push("Mordedura de mejillas");
-  if (document.getElementById("habitoLengua")?.checked) habitos.push("Mordedura de lengua");
-  return habitos;
-}
-
-function obtenerFumaSeleccionado() {
+function limpiarFormularios() {
+  // Limpiar formulario de historia
+  document.getElementById("fechaNacimiento").value = "";
+  document.getElementById("contacto").value = "";
+  document.getElementById("sexo").value = "";
+  document.getElementById("semestre").value = "";
+  document.getElementById("area").value = "";
+  document.getElementById("enfermedadesSistemicas").value = "";
+  document.getElementById("tipoEnfermedad").value = "";
+  document.getElementById("tomaMedicamentos").value = "";
+  document.getElementById("tipoMedicamento").value = "";
+  document.getElementById("antecedentesPsicologicos").value = "";
+  document.getElementById("tipoEnfermedadPsicologica").value = "";
+  document.getElementById("habitoNo").checked = false;
+  document.getElementById("habitoLabios").checked = false;
+  document.getElementById("habitoMejillas").checked = false;
+  document.getElementById("habitoLengua").checked = false;
+  document.getElementById("sustanciasPsicoactivas").value = "";
+  document.getElementById("tipoSustancia").value = "";
   const radios = document.getElementsByName("fumaOpcion");
-  for (let i = 0; i < radios.length; i++) {
-    if (radios[i].checked) return radios[i].value;
+  for (let i = 0; i < radios.length; i++) radios[i].checked = false;
+}
+
+// ========= CONSENTIMIENTO 1 =========
+function mostrarConsentimiento(tipo) {
+  tipoConsentimientoActual = tipo;
+  if (tipo === 1) {
+    document.getElementById("cons1Nombre").value = "";
+    document.getElementById("cons1Apellidos").value = "";
+    document.getElementById("cons1Cedula").value = "";
+    document.getElementById("cons1Error").style.display = "none";
+    mostrar("cedulaConsentimiento1");
+  } else {
+    document.getElementById("cons2Cedula").value = "";
+    document.getElementById("cons2Error").style.display = "none";
+    mostrar("cedulaConsentimiento2");
   }
-  return "";
+}
+
+async function validarCedulaConsentimiento1() {
+  const nombre = document.getElementById("cons1Nombre").value.trim();
+  const apellidos = document.getElementById("cons1Apellidos").value.trim();
+  const cedula = document.getElementById("cons1Cedula").value;
+  
+  if (!nombre || !apellidos || !cedula) {
+    mostrarErrorEn("cons1Error", "Complete todos los campos");
+    return;
+  }
+  
+  try {
+    // Verificar si ya tiene consentimiento 1 firmado
+    const yaFirmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
+    if (yaFirmado) {
+      mostrarErrorEn("cons1Error", "Este paciente ya tiene el Consentimiento 1 firmado");
+      return;
+    }
+    
+    datosPacienteConsentimiento = { nombre, apellidos, cedula };
+    cargarConsentimiento({ nombre, apellidos }, cedula);
+  } catch (error) {
+    mostrarErrorEn("cons1Error", error.message);
+  }
+}
+
+async function validarCedulaConsentimiento2() {
+  const cedula = document.getElementById("cons2Cedula").value;
+  
+  if (!cedula) {
+    mostrarErrorEn("cons2Error", "Ingrese el número de cédula");
+    return;
+  }
+  
+  try {
+    // Verificar si existe el consentimiento 1
+    const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
+    if (!cons1Firmado) {
+      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1");
+      return;
+    }
+    
+    // Verificar si ya tiene consentimiento 2 firmado
+    const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
+    if (cons2Firmado) {
+      mostrarErrorEn("cons2Error", "Este paciente ya tiene el Consentimiento 2 firmado");
+      return;
+    }
+    
+    // Obtener datos del paciente desde consentimiento 1
+    const paciente = await llamarAPI('obtenerDatosConsentimiento', { cedula: cedula });
+    datosPacienteConsentimiento = { ...paciente, cedula };
+    cargarConsentimiento(paciente, cedula);
+  } catch (error) {
+    mostrarErrorEn("cons2Error", error.message);
+  }
+}
+
+function mostrarErrorEn(elementId, mensaje) {
+  const errorDiv = document.getElementById(elementId);
+  errorDiv.innerHTML = mensaje;
+  errorDiv.style.display = "block";
+  setTimeout(() => {
+    errorDiv.style.display = "none";
+  }, 5000);
+}
+
+function cargarConsentimiento(paciente, cedula) {
+  const fechaActual = new Date().toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  
+  const nombreCompleto = `${paciente.nombre} ${paciente.apellidos}`;
+  
+  document.getElementById("nombrePacienteConsentimiento").innerHTML = nombreCompleto;
+  document.getElementById("cedulaPacienteConsentimiento").innerHTML = cedula;
+  document.getElementById("fechaConsentimiento").innerHTML = fechaActual;
+  
+  let texto = consentimientoTextos[tipoConsentimientoActual];
+  
+  texto = texto.replace(/________________________________________________/g, nombreCompleto);
+  texto = texto.replace(/Nombre: ______________________/g, "");
+  texto = texto.replace(/Cédula: ______________________/g, "");
+  texto = texto.replace(/Fecha: ______________________/g, "");
+  texto = texto.replace(/\nFirma del participante/, `\n\nNombre: ${nombreCompleto}\nCédula: ${cedula}\nFecha: ${fechaActual}\n\nFirma del participante`);
+  texto = texto.replace(/\n/g, '<br>');
+  
+  document.getElementById("consentimientoTexto").innerHTML = `<p style="white-space: pre-line;">${texto}</p>`;
+  document.getElementById("consentimientoTituloDoc").innerHTML = tipoConsentimientoActual === 1 ? "CONSENTIMIENTO 1 - ESTUDIO DE INVESTIGACIÓN" : "CONSENTIMIENTO 2 - REGISTRO FOTOGRÁFICO";
+  
+  setTimeout(() => configurarSignaturePad(), 100);
+  document.getElementById("consentimientoError").style.display = "none";
+  mostrar("consentimiento");
+}
+
+function configurarSignaturePad() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (canvas) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    signaturePad = new SignaturePad(canvas, {
+      backgroundColor: 'rgb(255, 255, 255)',
+      penColor: 'rgb(0, 0, 0)',
+      velocityFilterWeight: 0.7,
+      minWidth: 1,
+      maxWidth: 3
+    });
+  }
+}
+
+function limpiarFirma() {
+  if (signaturePad) signaturePad.clear();
+}
+
+async function guardarConsentimiento() {
+  if (!signaturePad) {
+    mostrarErrorEn("consentimientoError", "Error con el área de firma");
+    return;
+  }
+  
+  if (signaturePad.isEmpty()) {
+    mostrarErrorEn("consentimientoError", "Por favor, firme en el área designada antes de continuar");
+    return;
+  }
+  
+  const firmaDataURL = signaturePad.toDataURL();
+  const cedula = document.getElementById("cedulaPacienteConsentimiento").innerHTML;
+  
+  const btn = document.getElementById("btnGuardarConsentimiento");
+  const textoOriginal = btn.innerText;
+  btn.innerText = "Guardando...";
+  btn.disabled = true;
+  
+  try {
+    await llamarAPI('guardarConsentimientoConImagen', { 
+      cedula: cedula,
+      nombre: datosPacienteConsentimiento.nombre,
+      apellidos: datosPacienteConsentimiento.apellidos,
+      tipo: tipoConsentimientoActual,
+      fecha: new Date().toISOString().split('T')[0],
+      firmaDataURL: firmaDataURL
+    });
+    
+    mostrar("consentimientoExitoso");
+  } catch (error) {
+    mostrarErrorEn("consentimientoError", error.message);
+  } finally {
+    btn.innerText = textoOriginal;
+    btn.disabled = false;
+  }
 }
 
 // ========= HISTORIA CLÍNICA =========
 async function mostrarHistoria() {
-  mostrar("historia");
+  document.getElementById("historiaCedulaInput").value = "";
+  document.getElementById("historiaCedulaError").style.display = "none";
+  mostrar("cedulaHistoria");
   if (!epsCache) {
     try {
       epsCache = await llamarAPI('obtenerEPS');
       cargarEPS(epsCache);
     } catch (error) {
       console.error("Error cargando EPS:", error);
-      alert("Error al cargar las EPS. Verifique la conexión.");
     }
   } else {
     cargarEPS(epsCache);
   }
-  setTimeout(configurarCamposCondicionales, 100);
 }
 
 function cargarEPS(lista) {
@@ -259,32 +394,116 @@ function cargarEPS(lista) {
   }
 }
 
-function limpiarFormularioHistoria() {
-  document.getElementById("nombre").value = "";
-  document.getElementById("apellidos").value = "";
-  document.getElementById("cedula").value = "";
-  document.getElementById("fecha").value = "";
-  document.getElementById("contacto").value = "";
-  document.getElementById("sexo").value = "";
-  document.getElementById("semestre").value = "";
-  document.getElementById("enfermedadesSistemicas").value = "";
-  document.getElementById("tipoEnfermedad").value = "";
-  document.getElementById("tomaMedicamentos").value = "";
-  document.getElementById("tipoMedicamento").value = "";
-  document.getElementById("antecedentesPsicologicos").value = "";
-  document.getElementById("tipoEnfermedadPsicologica").value = "";
-  document.getElementById("habitoNo").checked = false;
-  document.getElementById("habitoLabios").checked = false;
-  document.getElementById("habitoMejillas").checked = false;
-  document.getElementById("habitoLengua").checked = false;
-  document.getElementById("sustanciasPsicoactivas").value = "";
-  document.getElementById("tipoSustancia").value = "";
+async function validarCedulaHistoria() {
+  const cedula = document.getElementById("historiaCedulaInput").value;
+  
+  if (!cedula) {
+    mostrarErrorEn("historiaCedulaError", "Ingrese el número de cédula");
+    return;
+  }
+  
+  try {
+    // Verificar si tiene los dos consentimientos firmados
+    const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
+    const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
+    
+    if (!cons1Firmado || !cons2Firmado) {
+      mostrarErrorEn("historiaCedulaError", "Debe tener ambos consentimientos firmados antes de registrar la historia clínica");
+      return;
+    }
+    
+    // Verificar si ya existe historia clínica
+    const existeHistoria = await llamarAPI('cedulaExiste', { cedula: cedula });
+    if (existeHistoria) {
+      mostrarErrorEn("historiaCedulaError", "Este paciente ya tiene una historia clínica registrada");
+      return;
+    }
+    
+    // Obtener datos del paciente desde consentimientos
+    const paciente = await llamarAPI('obtenerDatosConsentimiento', { cedula: cedula });
+    pacienteActual = { ...paciente, cedula };
+    
+    document.getElementById("nombrePacienteHistoria").innerHTML = `${paciente.nombre} ${paciente.apellidos}`;
+    document.getElementById("cedulaPacienteHistoria").innerHTML = cedula;
+    
+    document.getElementById("historiaError").style.display = "none";
+    mostrar("historia");
+    
+    // Configurar campos condicionales
+    setTimeout(configurarCamposCondicionales, 100);
+  } catch (error) {
+    mostrarErrorEn("historiaCedulaError", error.message);
+  }
+}
+
+function configurarCamposCondicionales() {
+  const enfermedades = document.getElementById("enfermedadesSistemicas");
+  const medicamentos = document.getElementById("tomaMedicamentos");
+  const psicologicos = document.getElementById("antecedentesPsicologicos");
+  const sustancias = document.getElementById("sustanciasPsicoactivas");
+  const checkNo = document.getElementById("habitoNo");
+  const checkLabios = document.getElementById("habitoLabios");
+  const checkMejillas = document.getElementById("habitoMejillas");
+  const checkLengua = document.getElementById("habitoLengua");
+  
+  const toggleEnfermedad = () => {
+    document.getElementById("campoTipoEnfermedad").style.display = enfermedades.value === "Sí" ? "block" : "none";
+  };
+  const toggleMedicamento = () => {
+    document.getElementById("campoTipoMedicamento").style.display = medicamentos.value === "Sí" ? "block" : "none";
+  };
+  const togglePsicologico = () => {
+    document.getElementById("campoTipoPsicologico").style.display = psicologicos.value === "Sí" ? "block" : "none";
+  };
+  const toggleSustancia = () => {
+    document.getElementById("campoTipoSustancia").style.display = sustancias.value === "Sí" ? "block" : "none";
+  };
+  
+  enfermedades.removeEventListener('change', toggleEnfermedad);
+  medicamentos.removeEventListener('change', toggleMedicamento);
+  psicologicos.removeEventListener('change', togglePsicologico);
+  sustancias.removeEventListener('change', toggleSustancia);
+  
+  enfermedades.addEventListener('change', toggleEnfermedad);
+  medicamentos.addEventListener('change', toggleMedicamento);
+  psicologicos.addEventListener('change', togglePsicologico);
+  sustancias.addEventListener('change', toggleSustancia);
+  
+  if (checkNo) {
+    checkNo.onchange = function() {
+      if (this.checked) {
+        checkLabios.checked = false;
+        checkMejillas.checked = false;
+        checkLengua.checked = false;
+      }
+    };
+  }
+  [checkLabios, checkMejillas, checkLengua].forEach(chk => {
+    if (chk) {
+      chk.onchange = function() {
+        if (this.checked && checkNo && checkNo.checked) {
+          checkNo.checked = false;
+        }
+      };
+    }
+  });
+}
+
+function obtenerHabitosSeleccionados() {
+  const habitos = [];
+  if (document.getElementById("habitoNo")?.checked) habitos.push("No");
+  if (document.getElementById("habitoLabios")?.checked) habitos.push("Mordedura de labios");
+  if (document.getElementById("habitoMejillas")?.checked) habitos.push("Mordedura de mejillas");
+  if (document.getElementById("habitoLengua")?.checked) habitos.push("Mordedura de lengua");
+  return habitos;
+}
+
+function obtenerFumaSeleccionado() {
   const radios = document.getElementsByName("fumaOpcion");
-  for (let i = 0; i < radios.length; i++) radios[i].checked = false;
-  document.getElementById("campoTipoEnfermedad").style.display = "none";
-  document.getElementById("campoTipoMedicamento").style.display = "none";
-  document.getElementById("campoTipoPsicologico").style.display = "none";
-  document.getElementById("campoTipoSustancia").style.display = "none";
+  for (let i = 0; i < radios.length; i++) {
+    if (radios[i].checked) return radios[i].value;
+  }
+  return "";
 }
 
 async function guardarHistoria() {
@@ -292,14 +511,15 @@ async function guardarHistoria() {
   const fuma = obtenerFumaSeleccionado();
   
   const datos = {
-    nombre: document.getElementById("nombre").value.trim(),
-    apellidos: document.getElementById("apellidos").value.trim(),
-    cedula: document.getElementById("cedula").value,
-    fecha: document.getElementById("fecha").value,
+    nombre: pacienteActual.nombre,
+    apellidos: pacienteActual.apellidos,
+    cedula: pacienteActual.cedula,
+    fechaNacimiento: document.getElementById("fechaNacimiento").value,
     contacto: document.getElementById("contacto").value,
     eps: document.getElementById("eps").value,
     sexo: document.getElementById("sexo").value,
     semestre: document.getElementById("semestre").value,
+    area: document.getElementById("area").value,
     enfermedadesSistemicas: document.getElementById("enfermedadesSistemicas").value,
     tipoEnfermedad: document.getElementById("tipoEnfermedad").value.trim(),
     tomaMedicamentos: document.getElementById("tomaMedicamentos").value,
@@ -312,69 +532,85 @@ async function guardarHistoria() {
     fumaCigarrilloVape: fuma
   };
 
-  if (!datos.nombre || !datos.apellidos || !datos.cedula || !datos.fecha || 
-      !datos.contacto || !datos.eps || !datos.sexo || !datos.semestre || 
-      !datos.enfermedadesSistemicas || !datos.tomaMedicamentos || 
-      !datos.antecedentesPsicologicos || datos.habitosOrales.length === 0 ||
-      !datos.sustanciasPsicoactivas || !datos.fumaCigarrilloVape) {
-    alert("Complete todos los campos");
+  const camposRequeridos = [
+    'fechaNacimiento', 'contacto', 'eps', 'sexo', 'semestre', 'area',
+    'enfermedadesSistemicas', 'tomaMedicamentos', 'antecedentesPsicologicos',
+    'sustanciasPsicoactivas'
+  ];
+  
+  const faltantes = camposRequeridos.filter(campo => !datos[campo]);
+  if (faltantes.length > 0) {
+    mostrarErrorEn("historiaError", "Complete todos los campos requeridos");
+    return;
+  }
+  
+  if (habitos.length === 0) {
+    mostrarErrorEn("historiaError", "Seleccione al menos una opción de hábitos orales");
+    return;
+  }
+  
+  if (!fuma) {
+    mostrarErrorEn("historiaError", "Seleccione una opción sobre consumo de cigarrillo/vape");
     return;
   }
 
   try {
-    const existe = await llamarAPI('cedulaExiste', { cedula: datos.cedula });
-    if (existe) {
-      mostrar("cedulaDuplicadaHistoria");
-    } else {
-      await llamarAPI('guardarHistoria', datos);
-      mostrar("registroExitoso");
-    }
+    await llamarAPI('guardarHistoriaCompleta', datos);
+    mostrar("registroExitoso");
   } catch (error) {
-    alert("Error al guardar: " + error.message);
+    mostrarErrorEn("historiaError", error.message);
   }
 }
 
 // ========= ENCUESTA =========
 function mostrarCedulaEncuesta() {
   document.getElementById("cedulaEncuestaInput").value = "";
+  document.getElementById("encuestaCedulaError").style.display = "none";
   mostrar("cedulaEncuesta");
-}
-
-function limpiarEncuesta() {
-  document.getElementById("cedulaEncuestaInput").value = "";
-  document.getElementById("contenedorPreguntas").innerHTML = "";
-  document.getElementById("nombrePaciente").innerHTML = "";
-  document.getElementById("mensajeErrorPreguntas").style.display = "none";
 }
 
 async function validarCedulaEncuesta() {
   const ced = document.getElementById("cedulaEncuestaInput").value;
   if (!ced) {
-    alert("Ingrese un número de cédula");
+    mostrarErrorEn("encuestaCedulaError", "Ingrese un número de cédula");
     return;
   }
 
   try {
     const resultados = await llamarAPIMultiple([
       { action: 'cedulaExiste', data: { cedula: ced } },
-      { action: 'encuestaYaExiste', data: { cedula: ced } }
+      { action: 'encuestaYaExiste', data: { cedula: ced } },
+      { action: 'verificarConsentimientoFirmado', data: { cedula: ced, tipo: 1 } },
+      { action: 'verificarConsentimientoFirmado', data: { cedula: ced, tipo: 2 } }
     ]);
     
     const existeHistoria = resultados[0];
     const existeEncuesta = resultados[1];
+    const cons1Firmado = resultados[2];
+    const cons2Firmado = resultados[3];
     
     if (!existeHistoria) {
-      mostrar("sinHistoria");
-    } else if (existeEncuesta) {
-      mostrar("encuestaDuplicada");
-    } else {
-      const paciente = await llamarAPI('obtenerDatosPaciente', { cedula: ced });
-      pacienteActual = paciente;
-      document.getElementById("nombrePaciente").innerHTML = `${paciente.nombre} ${paciente.apellidos}`;
-      iniciarEncuesta();
+      mostrarErrorEn("encuestaCedulaError", "Debe registrar primero la historia clínica");
+      return;
     }
+    
+    if (!cons1Firmado || !cons2Firmado) {
+      mostrarErrorEn("encuestaCedulaError", "Debe tener ambos consentimientos firmados");
+      return;
+    }
+    
+    if (existeEncuesta) {
+      mostrarErrorEn("encuestaCedulaError", "Este paciente ya completó la encuesta anteriormente");
+      return;
+    }
+    
+    const paciente = await llamarAPI('obtenerDatosPaciente', { cedula: ced });
+    pacienteActual = paciente;
+    document.getElementById("nombrePacienteEncuesta").innerHTML = `${paciente.nombre} ${paciente.apellidos}`;
+    document.getElementById("cedulaPacienteEncuesta").innerHTML = ced;
+    iniciarEncuesta();
   } catch (error) {
-    alert("Error al validar: " + error.message);
+    mostrarErrorEn("encuestaCedulaError", error.message);
   }
 }
 
@@ -386,7 +622,7 @@ async function iniciarEncuesta() {
       preguntasCache = await llamarAPI('obtenerPreguntas');
       mostrarPreguntas(preguntasCache);
     } catch (error) {
-      alert("Error al cargar preguntas: " + error.message);
+      mostrarErrorEn("mensajeErrorPreguntas", "Error al cargar preguntas: " + error.message);
     }
   }
 }
@@ -437,130 +673,12 @@ async function finalizarEncuesta() {
   }
 
   mensajeDiv.style.display = "none";
-  const cedula = document.getElementById("cedulaEncuestaInput").value;
+  const cedula = pacienteActual.cedula;
 
   try {
-    const resultado = await llamarAPI('guardarEncuesta', { cedula: cedula, respuestas: respuestas });
-    if (resultado === "duplicado") {
-      mostrar("encuestaDuplicada");
-    } else {
-      mostrar("encuestaExitosa");
-    }
+    await llamarAPI('guardarEncuesta', { cedula: cedula, respuestas: respuestas });
+    mostrar("encuestaExitosa");
   } catch (error) {
-    alert("Error al guardar encuesta: " + error.message);
-  }
-}
-
-// ========= CONSENTIMIENTO =========
-function mostrarConsentimiento(tipo) {
-  tipoConsentimientoActual = tipo;
-  document.getElementById("consentimientoTitulo").innerHTML = tipo === 1 ? "CONSENTIMIENTO 1 - ESTUDIO DE INVESTIGACIÓN" : "CONSENTIMIENTO 2 - REGISTRO FOTOGRÁFICO";
-  document.getElementById("cedulaConsentimientoInput").value = "";
-  mostrar("cedulaConsentimiento");
-}
-
-async function validarCedulaConsentimiento() {
-  const ced = document.getElementById("cedulaConsentimientoInput").value;
-  if (!ced) {
-    alert("Ingrese un número de cédula");
-    return;
-  }
-
-  try {
-    const existeHistoria = await llamarAPI('cedulaExiste', { cedula: ced });
-    
-    if (!existeHistoria) {
-      mostrar("sinHistoria");
-    } else {
-      const paciente = await llamarAPI('obtenerDatosPaciente', { cedula: ced });
-      pacienteActual = paciente;
-      cargarConsentimiento(paciente, ced);
-    }
-  } catch (error) {
-    alert("Error al validar: " + error.message);
-  }
-}
-
-function cargarConsentimiento(paciente, cedula) {
-  const fechaActual = new Date().toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-  
-  const nombreCompleto = `${paciente.nombre} ${paciente.apellidos}`;
-  
-  document.getElementById("nombrePacienteConsentimiento").innerHTML = nombreCompleto;
-  document.getElementById("cedulaPacienteConsentimiento").innerHTML = cedula;
-  document.getElementById("fechaConsentimiento").innerHTML = fechaActual;
-  
-  let texto = consentimientoTextos[tipoConsentimientoActual];
-  
-  texto = texto.replace(/________________________________________________/g, nombreCompleto);
-  texto = texto.replace(/Nombre: ______________________/g, "");
-  texto = texto.replace(/Cédula: ______________________/g, "");
-  texto = texto.replace(/Fecha: ______________________/g, "");
-  texto = texto.replace(/\nFirma del participante/, `\n\nNombre: ${nombreCompleto}\nCédula: ${cedula}\nFecha: ${fechaActual}\n\nFirma del participante`);
-  texto = texto.replace(/\n/g, '<br>');
-  
-  document.getElementById("consentimientoTexto").innerHTML = `<p style="white-space: pre-line;">${texto}</p>`;
-  document.getElementById("consentimientoTituloDoc").innerHTML = tipoConsentimientoActual === 1 ? "CONSENTIMIENTO 1 - ESTUDIO DE INVESTIGACIÓN" : "CONSENTIMIENTO 2 - REGISTRO FOTOGRÁFICO";
-  
-  setTimeout(() => configurarSignaturePad(), 100);
-  mostrar("consentimiento");
-}
-
-function configurarSignaturePad() {
-  const canvas = document.getElementById('signatureCanvas');
-  if (canvas) {
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-    signaturePad = new SignaturePad(canvas, {
-      backgroundColor: 'rgb(255, 255, 255)',
-      penColor: 'rgb(0, 0, 0)',
-      velocityFilterWeight: 0.7,
-      minWidth: 1,
-      maxWidth: 3
-    });
-  }
-}
-
-function limpiarFirma() {
-  if (signaturePad) signaturePad.clear();
-}
-
-async function guardarConsentimiento() {
-  if (!signaturePad) {
-    alert("Error con el área de firma");
-    return;
-  }
-  
-  if (signaturePad.isEmpty()) {
-    alert("Por favor, firme en el área designada antes de continuar");
-    return;
-  }
-  
-  const firmaDataURL = signaturePad.toDataURL();
-  const cedula = document.getElementById("cedulaPacienteConsentimiento").innerHTML;
-  
-  const btn = document.getElementById("btnGuardarConsentimiento");
-  const textoOriginal = btn.innerText;
-  btn.innerText = "Guardando...";
-  btn.disabled = true;
-  
-  try {
-    await llamarAPI('guardarConsentimiento', { 
-      cedula: cedula, 
-      tipo: tipoConsentimientoActual, 
-      firmaDataURL: firmaDataURL 
-    });
-    
-    alert("✅ Documento guardado correctamente\n\nLa firma ha sido registrada en la historia clínica.");
-    mostrar("consentimientoExitoso");
-  } catch (error) {
-    alert("❌ Error al guardar: " + error.message);
-  } finally {
-    btn.innerText = textoOriginal;
-    btn.disabled = false;
+    mostrarErrorEn("mensajeErrorPreguntas", error.message);
   }
 }
