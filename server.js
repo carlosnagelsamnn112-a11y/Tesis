@@ -13,10 +13,10 @@ const port = process.env.PORT || 3000;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// ========= TU URL DE APPS SCRIPT =========
+// ========= URL DE APPS SCRIPT =========
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbycWLIA-2OuopBHEpT-98rG8WS0jr2xAwGj3CPsZ6kI312AvM6E82uY9N7qo4jJeetg5Q/exec';
 
-// Ruta principal - SIRVE EL HTML
+// Ruta principal
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -41,7 +41,7 @@ app.post('/api/proxy', async (req, res) => {
   }
 });
 
-// Proxy para múltiples acciones (optimizado)
+// Proxy para múltiples acciones
 app.post('/api/proxy-multiple', async (req, res) => {
   const { acciones } = req.body;
   
