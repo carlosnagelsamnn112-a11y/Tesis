@@ -237,20 +237,16 @@ async function validarCedulaConsentimiento2() {
   }
   
   try {
-    console.log("Verificando cédula:", cedula);
-    
-    // Verificar si existe el consentimiento 1
+    // Verificar si existe el consentimiento 1 (que tenga fecha en columna F)
     const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
-    console.log("Consentimiento 1 firmado:", cons1Firmado);
     
     if (!cons1Firmado) {
-      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1. No se encontró registro del Consentimiento 1 para esta cédula.");
+      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1");
       return;
     }
     
     // Verificar si ya tiene consentimiento 2 firmado
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
-    console.log("Consentimiento 2 firmado:", cons2Firmado);
     
     if (cons2Firmado) {
       mostrarErrorEn("cons2Error", "Este paciente ya tiene el Consentimiento 2 firmado");
@@ -259,13 +255,11 @@ async function validarCedulaConsentimiento2() {
     
     // Obtener datos del paciente desde consentimiento 1
     const paciente = await llamarAPI('obtenerDatosConsentimiento', { cedula: cedula });
-    console.log("Paciente encontrado:", paciente);
     
     datosPacienteConsentimiento = { ...paciente, cedula };
     cargarConsentimiento(paciente, cedula);
   } catch (error) {
-    console.error("Error:", error);
-    mostrarErrorEn("cons2Error", "Error: " + error.message);
+    mostrarErrorEn("cons2Error", error.message);
   }
 }
 
@@ -413,12 +407,17 @@ async function validarCedulaHistoria() {
   }
   
   try {
-    // Verificar si tiene los dos consentimientos firmados
+    // Verificar si tiene los dos consentimientos firmados (que tengan fecha)
     const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
     
-    if (!cons1Firmado || !cons2Firmado) {
-      mostrarErrorEn("historiaCedulaError", "Debe tener ambos consentimientos firmados antes de registrar la historia clínica");
+    if (!cons1Firmado) {
+      mostrarErrorEn("historiaCedulaError", "Debe tener el Consentimiento 1 firmado antes de registrar la historia clínica");
+      return;
+    }
+    
+    if (!cons2Firmado) {
+      mostrarErrorEn("historiaCedulaError", "Debe tener el Consentimiento 2 firmado antes de registrar la historia clínica");
       return;
     }
     
@@ -604,8 +603,13 @@ async function validarCedulaEncuesta() {
       return;
     }
     
-    if (!cons1Firmado || !cons2Firmado) {
-      mostrarErrorEn("encuestaCedulaError", "Debe tener ambos consentimientos firmados");
+    if (!cons1Firmado) {
+      mostrarErrorEn("encuestaCedulaError", "Debe tener el Consentimiento 1 firmado");
+      return;
+    }
+    
+    if (!cons2Firmado) {
+      mostrarErrorEn("encuestaCedulaError", "Debe tener el Consentimiento 2 firmado");
       return;
     }
     
