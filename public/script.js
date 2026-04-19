@@ -170,7 +170,6 @@ function limpiarFormularios() {
   document.getElementById("contacto").value = "";
   document.getElementById("sexo").value = "";
   document.getElementById("semestre").value = "";
-  document.getElementById("area").value = "";
   document.getElementById("enfermedadesSistemicas").value = "";
   document.getElementById("tipoEnfermedad").value = "";
   document.getElementById("tomaMedicamentos").value = "";
@@ -214,7 +213,6 @@ async function validarCedulaConsentimiento1() {
   }
   
   try {
-    // Verificar si ya tiene consentimiento 1 firmado
     const yaFirmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
     if (yaFirmado) {
       mostrarErrorEn("cons1Error", "Este paciente ya tiene el Consentimiento 1 firmado");
@@ -237,7 +235,6 @@ async function validarCedulaConsentimiento2() {
   }
   
   try {
-    // Verificar si existe el consentimiento 1 (que tenga fecha en columna F)
     const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
     
     if (!cons1Firmado) {
@@ -245,7 +242,6 @@ async function validarCedulaConsentimiento2() {
       return;
     }
     
-    // Verificar si ya tiene consentimiento 2 firmado
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
     
     if (cons2Firmado) {
@@ -253,7 +249,6 @@ async function validarCedulaConsentimiento2() {
       return;
     }
     
-    // Obtener datos del paciente desde consentimiento 1
     const paciente = await llamarAPI('obtenerDatosConsentimiento', { cedula: cedula });
     
     datosPacienteConsentimiento = { ...paciente, cedula };
@@ -334,7 +329,6 @@ async function guardarConsentimiento() {
   
   const firmaDataURL = signaturePad.toDataURL();
   const cedula = document.getElementById("cedulaPacienteConsentimiento").innerHTML;
-  const fechaActual = new Date().toISOString().split('T')[0];
   
   const btn = document.getElementById("btnGuardarConsentimiento");
   const textoOriginal = btn.innerText;
@@ -347,7 +341,6 @@ async function guardarConsentimiento() {
       nombre: datosPacienteConsentimiento.nombre,
       apellidos: datosPacienteConsentimiento.apellidos,
       tipo: tipoConsentimientoActual,
-      fecha: fechaActual,
       firmaDataURL: firmaDataURL
     });
     
@@ -407,7 +400,6 @@ async function validarCedulaHistoria() {
   }
   
   try {
-    // Verificar si tiene los dos consentimientos firmados (que tengan fecha)
     const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
     
@@ -421,14 +413,12 @@ async function validarCedulaHistoria() {
       return;
     }
     
-    // Verificar si ya existe historia clínica
     const existeHistoria = await llamarAPI('cedulaExiste', { cedula: cedula });
     if (existeHistoria) {
       mostrarErrorEn("historiaCedulaError", "Este paciente ya tiene una historia clínica registrada");
       return;
     }
     
-    // Obtener datos del paciente desde consentimientos
     const paciente = await llamarAPI('obtenerDatosConsentimiento', { cedula: cedula });
     pacienteActual = { ...paciente, cedula };
     
@@ -438,7 +428,6 @@ async function validarCedulaHistoria() {
     document.getElementById("historiaError").style.display = "none";
     mostrar("historia");
     
-    // Configurar campos condicionales
     setTimeout(configurarCamposCondicionales, 100);
   } catch (error) {
     mostrarErrorEn("historiaCedulaError", error.message);
@@ -515,9 +504,13 @@ function obtenerFumaSeleccionado() {
   return "";
 }
 
+// ========= GUARDAR HISTORIA CLÍNICA CON ÁREA AUTOMÁTICA =========
 async function guardarHistoria() {
   const habitos = obtenerHabitosSeleccionados();
   const fuma = obtenerFumaSeleccionado();
+  
+  const semestre = parseInt(document.getElementById("semestre").value);
+  const areaCalculada = semestre <= 4 ? "Preclínica" : "Clínica";
   
   const datos = {
     nombre: pacienteActual.nombre,
@@ -527,8 +520,8 @@ async function guardarHistoria() {
     contacto: document.getElementById("contacto").value,
     eps: document.getElementById("eps").value,
     sexo: document.getElementById("sexo").value,
-    semestre: document.getElementById("semestre").value,
-    area: document.getElementById("area").value,
+    semestre: semestre,
+    area: areaCalculada,
     enfermedadesSistemicas: document.getElementById("enfermedadesSistemicas").value,
     tipoEnfermedad: document.getElementById("tipoEnfermedad").value.trim(),
     tomaMedicamentos: document.getElementById("tomaMedicamentos").value,
@@ -542,7 +535,7 @@ async function guardarHistoria() {
   };
 
   const camposRequeridos = [
-    'fechaNacimiento', 'contacto', 'eps', 'sexo', 'semestre', 'area',
+    'fechaNacimiento', 'contacto', 'eps', 'sexo', 'semestre',
     'enfermedadesSistemicas', 'tomaMedicamentos', 'antecedentesPsicologicos',
     'sustanciasPsicoactivas'
   ];
