@@ -224,7 +224,7 @@ async function validarCedulaConsentimiento1() {
   try {
     const yaFirmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
     if (yaFirmado) {
-      mostrarErrorEn("cons1Error", "Este paciente ya tiene el Consentimiento 1 firmado");
+      mostrarErrorEn("cons1Error", "Este paciente ya tiene el Consentimiento 1 Recolección de datos firmado");
       return;
     }
     
@@ -247,14 +247,14 @@ async function validarCedulaConsentimiento2() {
     const cons1Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 1 });
     
     if (!cons1Firmado) {
-      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1");
+      mostrarErrorEn("cons2Error", "Debe firmar primero el Consentimiento 1 Recolección de datos");
       return;
     }
     
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
     
     if (cons2Firmado) {
-      mostrarErrorEn("cons2Error", "Este paciente ya tiene el Consentimiento 2 firmado");
+      mostrarErrorEn("cons2Error", "Este paciente ya tiene el Consentimiento 2 Registro fotográfico firmado");
       return;
     }
     
@@ -299,7 +299,9 @@ function cargarConsentimiento(paciente, cedula) {
   texto = texto.replace(/\n/g, '<br>');
   
   document.getElementById("consentimientoTexto").innerHTML = `<p style="white-space: pre-line;">${texto}</p>`;
-  document.getElementById("consentimientoTituloDoc").innerHTML = tipoConsentimientoActual === 1 ? "CONSENTIMIENTO 1 - RECOLECCIÓN DE DATOS" : "CONSENTIMIENTO 2 - REGISTRO FOTOGRÁFICO";
+  document.getElementById("consentimientoTituloDoc").innerHTML = tipoConsentimientoActual === 1 
+    ? "CONSENTIMIENTO 1 RECOLECCIÓN DE DATOS" 
+    : "CONSENTIMIENTO 2 REGISTRO FOTOGRÁFICO";
   
   setTimeout(() => configurarSignaturePad(), 100);
   document.getElementById("consentimientoError").style.display = "none";
@@ -413,12 +415,12 @@ async function validarCedulaHistoria() {
     const cons2Firmado = await llamarAPI('verificarConsentimientoFirmado', { cedula: cedula, tipo: 2 });
     
     if (!cons1Firmado) {
-      mostrarErrorEn("historiaCedulaError", "Debe tener el Consentimiento 1 firmado antes de registrar la historia clínica");
+      mostrarErrorEn("historiaCedulaError", "Debe tener el Consentimiento 1 Recolección de datos firmado antes de registrar la historia clínica");
       return;
     }
     
     if (!cons2Firmado) {
-      mostrarErrorEn("historiaCedulaError", "Debe tener el Consentimiento 2 firmado antes de registrar la historia clínica");
+      mostrarErrorEn("historiaCedulaError", "Debe tener el Consentimiento 2 Registro fotográfico firmado antes de registrar la historia clínica");
       return;
     }
     
@@ -606,12 +608,12 @@ async function validarCedulaEncuesta() {
     }
     
     if (!cons1Firmado) {
-      mostrarErrorEn("encuestaCedulaError", "Debe tener el Consentimiento 1 firmado");
+      mostrarErrorEn("encuestaCedulaError", "Debe tener el Consentimiento 1 Recolección de datos firmado");
       return;
     }
     
     if (!cons2Firmado) {
-      mostrarErrorEn("encuestaCedulaError", "Debe tener el Consentimiento 2 firmado");
+      mostrarErrorEn("encuestaCedulaError", "Debe tener el Consentimiento 2 Registro fotográfico firmado");
       return;
     }
     
