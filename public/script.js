@@ -6,7 +6,7 @@ let tipoConsentimientoActual = null;
 let epsCache = null;
 let datosPacienteConsentimiento = null;
 
-// Textos de consentimientos
+// Textos de consentimientos (versión HTML para mostrar en pantalla)
 const consentimientoTextos = {
   1: `CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN EN UN ESTUDIO DE INVESTIGACIÓN TRABAJO DE GRADO
 
@@ -60,28 +60,37 @@ Luisa María Sandoval (20572212013) - Estudiante de odontología
 Christopher Vargas (20572211040) - Estudiante de odontología
 Alejandra Bobadilla Henao - Docente de odontología - Asesora científica`,
 
-  2: `CONSENTIMIENTO INFORMADO PARA REGISTRO FOTOGRÁFICO
+  2: `CONSENTIMIENTO INFORMADO PARA LA TOMA Y USO DE REGISTROS FOTOGRÁFICOS EN INVESTIGACIÓN
+
+TRABAJO DE GRADO
 
 Título del proyecto: Relación entre factores emocionales y hábitos parafuncionales en estudiantes de odontología de la Universidad Antonio Nariño, Sede Neiva.
 
-Yo, ________________________________________________, identificado(a) con cédula de ciudadanía ______________________, en pleno uso de mis facultades, autorizo de manera voluntaria la toma de registros fotográficos intraorales como parte del estudio de investigación "Relación entre factores emocionales y hábitos parafuncionales en estudiantes de odontología".
+Ciudad: Neiva – Huila
 
-1. PROPÓSITO DE LAS FOTOGRAFÍAS
-He sido informado(a) que las imágenes serán utilizadas para fines de análisis clínico, documentación del caso y verificación de hallazgos relacionados con hábitos parafuncionales orales.
+En el marco del desarrollo del presente proyecto de investigación, se solicita su autorización para la toma de registros fotográficos intraorales, los cuales serán utilizados exclusivamente con fines académicos y científicos. Estas imágenes permitirán apoyar el análisis clínico y la comprensión de los hábitos parafuncionales en los participantes del estudio.
+
+Yo, ________________________________________________, identificado(a) con el número de cédula que aparece al pie de mi firma, actuando en nombre propio, manifiesto que he sido informado(a) de manera clara, suficiente y comprensible, y que autorizo de forma libre, previa y voluntaria la toma y uso de registros fotográficos intraorales dentro del proyecto de investigación mencionado, desarrollado por los estudiantes investigadores Diana Carolina Cortés, Luisa María Sandoval y Christopher Vargas, bajo la asesoría científica de la Dra. Alejandra Bobadilla Henao.
+
+1. FINALIDAD DE LOS REGISTROS FOTOGRÁFICOS
+He sido informado(a) de manera clara de que las imágenes serán utilizadas exclusivamente con fines académicos, científicos e investigativos en el desarrollo del trabajo de grado.
 
 2. PROCEDIMIENTO
-Entiendo que la toma de fotografías será realizada por personal capacitado, utilizando equipos adecuados, y no representa ningún riesgo adicional para mi salud.
+Entiendo que la toma de fotografías se realizará únicamente en la cavidad oral, mediante procedimientos no invasivos y cumpliendo con las normas de bioseguridad establecidas.
 
-3. CONFIDENCIALIDAD
-Se me ha garantizado que las imágenes serán tratadas con estricta confidencialidad y almacenadas de forma segura. Mi identidad no será revelada en ninguna publicación o presentación, a menos que otorgue una autorización específica por escrito.
+3. RIESGOS
+Se me ha informado que este procedimiento es de riesgo mínimo, ya que no representa daño físico ni psicológico para mi integridad.
 
-4. USO DE LAS IMÁGENES
+4. CONFIDENCIALIDAD Y PRIVACIDAD
+Se garantiza que las imágenes serán tratadas con estricta confidencialidad, evitando cualquier información que permita mi identificación. En caso de que se requiera incluir elementos que puedan facilitar mi identificación, se solicitará una autorización adicional.
+
+5. USO DE LAS IMÁGENES
 Autorizo que los registros fotográficos puedan ser utilizados en análisis clínico, presentaciones académicas o científicas y publicaciones derivadas de la investigación.
 
-5. PARTICIPACIÓN VOLUNTARIA Y RETIRO
+6. PARTICIPACIÓN VOLUNTARIA Y RETIRO
 Comprendo que mi participación es totalmente voluntaria y que puedo retirar mi autorización en cualquier momento, sin que esto genere ningún tipo de perjuicio.
 
-6. ACLARACIÓN DE DUDAS
+7. ACLARACIÓN DE DUDAS
 Declaro que he recibido información suficiente sobre el propósito, alcance y uso de los registros fotográficos, y que he tenido la oportunidad de realizar preguntas, las cuales han sido respondidas satisfactoriamente.
 
 En constancia de lo anterior, se firma el presente consentimiento informado.
@@ -290,7 +299,7 @@ function cargarConsentimiento(paciente, cedula) {
   texto = texto.replace(/\n/g, '<br>');
   
   document.getElementById("consentimientoTexto").innerHTML = `<p style="white-space: pre-line;">${texto}</p>`;
-  document.getElementById("consentimientoTituloDoc").innerHTML = tipoConsentimientoActual === 1 ? "CONSENTIMIENTO 1 - ESTUDIO DE INVESTIGACIÓN" : "CONSENTIMIENTO 2 - REGISTRO FOTOGRÁFICO";
+  document.getElementById("consentimientoTituloDoc").innerHTML = tipoConsentimientoActual === 1 ? "CONSENTIMIENTO 1 - RECOLECCIÓN DE DATOS" : "CONSENTIMIENTO 2 - REGISTRO FOTOGRÁFICO";
   
   setTimeout(() => configurarSignaturePad(), 100);
   document.getElementById("consentimientoError").style.display = "none";
@@ -689,3 +698,18 @@ async function finalizarEncuesta() {
     mostrarErrorEn("mensajeErrorPreguntas", error.message);
   }
 }
+
+// ========= VERIFICAR BACKEND AL INICIO =========
+async function verificarBackend() {
+  try {
+    const response = await fetch('/api/health');
+    const data = await response.json();
+    console.log('Backend conectado:', data);
+  } catch (error) {
+    console.error('Error conectando al backend:', error);
+    mostrarError('No se pudo conectar al servidor. Por favor, recargue la página.');
+  }
+}
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', verificarBackend);
