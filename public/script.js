@@ -46,16 +46,19 @@ Entiendo que mi participación es totalmente voluntaria y que puedo retirarme en
 8. ACLARACIÓN DE DUDAS
 He tenido la oportunidad de realizar preguntas sobre el estudio y he recibido respuestas claras y satisfactorias por parte de los investigadores.
 
-Nombre:
-Cédula: 
-Fecha:
+En constancia de lo anterior, se firma el presente consentimiento informado.
+
+______________________________________________________
+Firma del participante
+
+Nombre: ______________________  Cédula: ______________________  Fecha: ______________________
+
+Firma de los investigadores:
 
 Diana Carolina Cortés (20572211983) - Estudiante de odontología
 Luisa María Sandoval (20572212013) - Estudiante de odontología
 Christopher Vargas (20572211040) - Estudiante de odontología
-Alejandra Bobadilla Henao - Docente de odontología - Asesora científica
-
-En constancia de lo anterior, se firma el presente consentimiento informado.`,
+Alejandra Bobadilla Henao - Docente de odontología - Asesora científica`,
 
   2: `CONSENTIMIENTO INFORMADO PARA LA TOMA Y USO DE REGISTROS FOTOGRÁFICOS EN INVESTIGACIÓN
 
@@ -90,16 +93,19 @@ Comprendo que mi participación es totalmente voluntaria y que puedo retirar mi 
 7. ACLARACIÓN DE DUDAS
 Declaro que he recibido información suficiente sobre el propósito, alcance y uso de los registros fotográficos, y que he tenido la oportunidad de realizar preguntas, las cuales han sido respondidas satisfactoriamente.
 
-Nombre:
-Cédula: 
-Fecha:
+En constancia de lo anterior, se firma el presente consentimiento informado.
+
+______________________________________________________
+Firma del participante
+
+Nombre: ______________________  Cédula: ______________________  Fecha: ______________________
+
+Firma de los investigadores:
 
 Diana Carolina Cortés (20572211983) - Estudiante de odontología
 Luisa María Sandoval (20572212013) - Estudiante de odontología
 Christopher Vargas (20572211040) - Estudiante de odontología
-Alejandra Bobadilla Henao - Docente de odontología - Asesora científica
-
-En constancia de lo anterior, se firma el presente consentimiento informado.`
+Alejandra Bobadilla Henao - Docente de odontología - Asesora científica`
 };
 
 // ========= FUNCIONES DE COMUNICACIÓN CON EL BACKEND =========
@@ -168,16 +174,7 @@ function limpiarMensajesError() {
 }
 
 function limpiarFormularios() {
-  // Limpiar formulario de consentimiento 1
-  document.getElementById("cons1Nombre").value = "";
-  document.getElementById("cons1Apellidos").value = "";
-  document.getElementById("cons1Cedula").value = "";
-  
-  // Limpiar formulario de consentimiento 2
-  document.getElementById("cons2Cedula").value = "";
-  
   // Limpiar formulario de historia
-  document.getElementById("historiaCedulaInput").value = "";
   document.getElementById("fechaNacimiento").value = "";
   document.getElementById("contacto").value = "";
   document.getElementById("sexo").value = "";
@@ -194,22 +191,8 @@ function limpiarFormularios() {
   document.getElementById("habitoLengua").checked = false;
   document.getElementById("sustanciasPsicoactivas").value = "";
   document.getElementById("tipoSustancia").value = "";
-  
-  // Limpiar EPS
-  const epsInput = document.getElementById("epsInput");
-  const epsSelect = document.getElementById("eps");
-  if (epsInput) epsInput.value = "";
-  if (epsSelect) epsSelect.value = "";
-  
   const radios = document.getElementsByName("fumaOpcion");
   for (let i = 0; i < radios.length; i++) radios[i].checked = false;
-  
-  // Limpiar formulario de encuesta
-  document.getElementById("cedulaEncuestaInput").value = "";
-  
-  // Ocultar campos condicionales
-  const camposCondicionales = document.querySelectorAll('.campo-condicional');
-  camposCondicionales.forEach(campo => campo.style.display = 'none');
 }
 
 // ========= CONSENTIMIENTO 1 =========
@@ -308,14 +291,11 @@ function cargarConsentimiento(paciente, cedula) {
   
   let texto = consentimientoTextos[tipoConsentimientoActual];
   
-  // Reemplazar la línea de nombre en blanco
   texto = texto.replace(/________________________________________________/g, nombreCompleto);
-  
-  // Reemplazar los placeholders con los datos reales
-  texto = texto.replace(/Nombre:\s*\n/g, `Nombre: ${nombreCompleto}\n`);
-  texto = texto.replace(/Cédula:\s*\n/g, `Cédula: ${cedula}\n`);
-  texto = texto.replace(/Fecha:\s*\n/g, `Fecha: ${fechaActual}\n`);
-  
+  texto = texto.replace(/Nombre: ______________________/g, "");
+  texto = texto.replace(/Cédula: ______________________/g, "");
+  texto = texto.replace(/Fecha: ______________________/g, "");
+  texto = texto.replace(/\nFirma del participante/, `\n\nNombre: ${nombreCompleto}\nCédula: ${cedula}\nFecha: ${fechaActual}\n\nFirma del participante`);
   texto = texto.replace(/\n/g, '<br>');
   
   document.getElementById("consentimientoTexto").innerHTML = `<p style="white-space: pre-line;">${texto}</p>`;
@@ -331,10 +311,8 @@ function cargarConsentimiento(paciente, cedula) {
 function configurarSignaturePad() {
   const canvas = document.getElementById('signatureCanvas');
   if (canvas) {
-    // Tamaño normal en la interfaz: 500x200
-    canvas.width = canvas.clientWidth || 500;
-    canvas.height = canvas.clientHeight || 200;
-    
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
     signaturePad = new SignaturePad(canvas, {
       backgroundColor: 'rgb(255, 255, 255)',
       penColor: 'rgb(0, 0, 0)',
@@ -388,105 +366,40 @@ async function guardarConsentimiento() {
 
 // ========= HISTORIA CLÍNICA =========
 async function mostrarHistoria() {
-  limpiarFormularios();
   document.getElementById("historiaCedulaInput").value = "";
   document.getElementById("historiaCedulaError").style.display = "none";
   mostrar("cedulaHistoria");
   if (!epsCache) {
     try {
       epsCache = await llamarAPI('obtenerEPS');
+      cargarEPS(epsCache);
     } catch (error) {
       console.error("Error cargando EPS:", error);
     }
+  } else {
+    cargarEPS(epsCache);
   }
-  configurarEPS();
 }
 
-function configurarEPS() {
-  const epsContainer = document.getElementById("epsContainer");
-  if (!epsContainer) return;
-  
-  // Crear el input de búsqueda y el select desplegable
-  epsContainer.innerHTML = `
-    <input type="text" id="epsInput" placeholder="Buscar o escribir EPS..." autocomplete="off">
-    <select id="eps" size="5" style="display:none; margin-top:5px;"></select>
-  `;
-  
-  const epsInput = document.getElementById("epsInput");
-  const epsSelect = document.getElementById("eps");
-  
-  // Llenar el select con las EPS
-  if (epsCache && epsCache.length > 0) {
-    epsCache.forEach(eps => {
-      if (eps && eps.toString().trim() !== "") {
-        const option = document.createElement("option");
-        option.value = eps;
-        option.text = eps;
-        epsSelect.appendChild(option);
+function cargarEPS(lista) {
+  const select = document.getElementById("eps");
+  select.innerHTML = "";
+  const defaultOption = document.createElement("option");
+  defaultOption.text = "-- Seleccione EPS --";
+  defaultOption.value = "";
+  defaultOption.disabled = true;
+  defaultOption.selected = true;
+  select.add(defaultOption);
+  if (lista && lista.length > 0) {
+    lista.forEach(e => {
+      if (e && e.toString().trim() !== "") {
+        const o = document.createElement("option");
+        o.text = e;
+        o.value = e;
+        select.add(o);
       }
     });
   }
-  
-  // Función para filtrar EPS
-  function filtrarEPS(busqueda) {
-    const termino = busqueda.toLowerCase().trim();
-    epsSelect.innerHTML = "";
-    
-    let opcionesMostradas = 0;
-    if (epsCache && epsCache.length > 0) {
-      epsCache.forEach(eps => {
-        if (eps && eps.toString().trim() !== "" && eps.toLowerCase().includes(termino)) {
-          const option = document.createElement("option");
-          option.value = eps;
-          option.text = eps;
-          epsSelect.appendChild(option);
-          opcionesMostradas++;
-        }
-      });
-    }
-    
-    // Si no hay coincidencias y hay texto escrito, permitir usar lo escrito
-    if (opcionesMostradas === 0 && termino.length > 0) {
-      const option = document.createElement("option");
-      option.value = termino;
-      option.text = `Usar "${termino}" como nueva EPS`;
-      epsSelect.appendChild(option);
-    }
-    
-    // Mostrar u ocultar el select
-    epsSelect.style.display = termino.length > 0 || epsSelect.options.length > 0 ? 'block' : 'none';
-  }
-  
-  // Eventos
-  epsInput.addEventListener('input', (e) => {
-    filtrarEPS(e.target.value);
-  });
-  
-  epsInput.addEventListener('focus', () => {
-    filtrarEPS(epsInput.value);
-  });
-  
-  epsInput.addEventListener('blur', () => {
-    // Pequeño delay para permitir click en el select
-    setTimeout(() => {
-      epsSelect.style.display = 'none';
-    }, 200);
-  });
-  
-  epsSelect.addEventListener('change', () => {
-    if (epsSelect.value) {
-      epsInput.value = epsSelect.value;
-    }
-    epsSelect.style.display = 'none';
-  });
-  
-  epsSelect.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    if (e.target.value) {
-      epsInput.value = e.target.value;
-      epsSelect.style.display = 'none';
-    }
-  });
 }
 
 async function validarCedulaHistoria() {
@@ -544,19 +457,15 @@ function configurarCamposCondicionales() {
   
   const toggleEnfermedad = () => {
     document.getElementById("campoTipoEnfermedad").style.display = enfermedades.value === "Sí" ? "block" : "none";
-    if (enfermedades.value !== "Sí") document.getElementById("tipoEnfermedad").value = "";
   };
   const toggleMedicamento = () => {
     document.getElementById("campoTipoMedicamento").style.display = medicamentos.value === "Sí" ? "block" : "none";
-    if (medicamentos.value !== "Sí") document.getElementById("tipoMedicamento").value = "";
   };
   const togglePsicologico = () => {
     document.getElementById("campoTipoPsicologico").style.display = psicologicos.value === "Sí" ? "block" : "none";
-    if (psicologicos.value !== "Sí") document.getElementById("tipoEnfermedadPsicologica").value = "";
   };
   const toggleSustancia = () => {
     document.getElementById("campoTipoSustancia").style.display = sustancias.value === "Sí" ? "block" : "none";
-    if (sustancias.value !== "Sí") document.getElementById("tipoSustancia").value = "";
   };
   
   enfermedades.removeEventListener('change', toggleEnfermedad);
@@ -614,16 +523,13 @@ async function guardarHistoria() {
   const semestre = parseInt(document.getElementById("semestre").value);
   const areaCalculada = semestre <= 4 ? "Preclínica" : "Clínica";
   
-  // Obtener el valor de EPS del input (que puede ser seleccionado o escrito manualmente)
-  const epsValue = document.getElementById("epsInput") ? document.getElementById("epsInput").value.trim() : "";
-  
   const datos = {
     nombre: pacienteActual.nombre,
     apellidos: pacienteActual.apellidos,
     cedula: pacienteActual.cedula,
     fechaNacimiento: document.getElementById("fechaNacimiento").value,
     contacto: document.getElementById("contacto").value,
-    eps: epsValue,
+    eps: document.getElementById("eps").value,
     sexo: document.getElementById("sexo").value,
     semestre: semestre,
     area: areaCalculada,
