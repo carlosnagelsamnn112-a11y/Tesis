@@ -55,7 +55,7 @@ app.use(express.static('public', {
 }));
 
 // ========= URL DE APPS SCRIPT =========
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbycWLIA-2OuopBHEpT-98rG8WS0jr2xAwGj3CPsZ6kI312AvM6E82uY9N7qo4jJeetg5Q/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyBOQVgVtaP3toykgQpZUurDtI1-48g897CGzSc5wuGAXeCFTlR_y7ojvrrmlA0pZYMQw/exec';
 
 // ========= TIMEOUT PARA FETCH =========
 const fetchWithTimeout = async (url, options, timeout = 15000) => {
