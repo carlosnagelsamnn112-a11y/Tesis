@@ -1,7 +1,7 @@
 {
   "name": "sistema-evaluacion-clinica",
-  "version": "1.0.0",
-  "description": "Sistema de evaluación clínica con Google Sheets backend",
+  "version": "2.0.0",
+  "description": "Sistema de evaluación clínica con Google Sheets backend - Optimizado",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -12,6 +12,6 @@
     "node-fetch": "^3.3.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.17.1"
   }
 }
