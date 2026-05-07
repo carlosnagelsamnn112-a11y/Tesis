@@ -2,7 +2,6 @@ import express from 'express';
 import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import compression from 'compression';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,108 +9,54 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware de compresión - Reduce el tamaño de las respuestas
-app.use(compression());
-
 // Middleware
-app.use(express.json({ limit: '1mb' })); // Reducimos límite, solo necesitamos 1mb
-app.use(express.static('public', {
-  maxAge: '1y', // Cachear archivos estáticos por 1 año
-  etag: true,
-  lastModified: true,
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache');
-    }
-  }
-}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static('public'));
 
 // ========= URL DE APPS SCRIPT =========
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbycWLIA-2OuopBHEpT-98rG8WS0jr2xAwGj3CPsZ6kI312AvM6E82uY9N7qo4jJeetg5Q/exec';
 
-// Pool de conexiones reutilizables
-const httpsAgent = new (await import('https')).Agent({
-  keepAlive: true,
-  keepAliveMsecs: 1000,
-  maxSockets: 10,
-  maxFreeSockets: 5,
-  timeout: 20000
-});
-
 // Ruta principal
 app.get('/', (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Proxy para una sola acción - Optimizado
+// Proxy para una sola acción
 app.post('/api/proxy', async (req, res) => {
   const { action, data } = req.body;
   
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25 segundos timeout
-    
     const response = await fetch(GAS_API_URL, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept-Encoding': 'gzip, deflate'
-      },
-      body: JSON.stringify({ action, data }),
-      signal: controller.signal
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, data })
     });
-    
-    clearTimeout(timeout);
     
     const result = await response.json();
     res.json(result);
     
   } catch (error) {
-    console.error('Error al llamar a la API de GAS:', error.message);
+    console.error('Error al llamar a la API de GAS:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Proxy para múltiples acciones - Optimizado para ejecutar en paralelo cuando sea posible
+// Proxy para múltiples acciones
 app.post('/api/proxy-multiple', async (req, res) => {
   const { acciones } = req.body;
   
   try {
-    // Si todas las acciones son independientes (lectura), ejecutarlas en paralelo
-    const todasLectura = acciones.every(a => 
-      ['obtenerPreguntas', 'obtenerEPS', 'cedulaExiste', 'encuestaYaExiste', 
-       'verificarConsentimientoFirmado', 'obtenerDatosConsentimiento', 
-       'obtenerDatosPaciente'].includes(a.action)
-    );
+    const response = await fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'multiple', acciones })
+    });
     
-    if (todasLectura && acciones.length > 1) {
-      // Ejecutar en paralelo - mucho más rápido
-      const promesas = acciones.map(accion => 
-        fetch(GAS_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: accion.action, data: accion.data })
-        }).then(r => r.json()).then(r => r.success ? r.data : null)
-         .catch(() => null)
-      );
-      
-      const resultados = await Promise.all(promesas);
-      res.json({ success: true, data: resultados });
-    } else {
-      // Ejecutar secuencialmente si hay escrituras
-      const response = await fetch(GAS_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'multiple', acciones })
-      });
-      
-      const result = await response.json();
-      res.json(result);
-    }
+    const result = await response.json();
+    res.json(result);
     
   } catch (error) {
-    console.error('Error al llamar a la API de GAS:', error.message);
+    console.error('Error al llamar a la API de GAS:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
