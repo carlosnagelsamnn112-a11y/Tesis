@@ -6,7 +6,7 @@ let tipoConsentimientoActual = null;
 let epsCache = null;
 let datosPacienteConsentimiento = null;
 
-// Textos de consentimientos (versión HTML para mostrar en pantalla)
+// Textos de consentimientos
 const consentimientoTextos = {
   1: `CONSENTIMIENTO INFORMADO PARA LA PARTICIPACIÓN EN UN ESTUDIO DE INVESTIGACIÓN TRABAJO DE GRADO
 
@@ -102,26 +102,72 @@ Alejandra Bobadilla Henao - Docente de odontología - Asesora científica
 En constancia de lo anterior, se firma el presente consentimiento informado.`
 };
 
-// ========= FUNCIONES DE COMUNICACIÓN CON EL BACKEND =========
-async function llamarAPI(action, data = {}) {
-  try {
-    const response = await fetch('/api/proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, data })
-    });
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || 'Error en la API');
-    }
-    return result.data;
-  } catch (error) {
-    console.error('Error en llamarAPI:', error);
-    throw error;
+// ========= FUNCIONES DE CARGA =========
+function mostrarCarga(mensaje = 'Procesando...') {
+  const overlay = document.getElementById('loadingOverlay');
+  const texto = document.getElementById('loadingText');
+  if (overlay && texto) {
+    texto.textContent = mensaje;
+    overlay.style.display = 'flex';
   }
 }
 
-async function llamarAPIMultiple(acciones) {
+function ocultarCarga() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+// ========= FUNCIONES DE COMUNICACIÓN CON EL BACKEND =========
+async function llamarAPI(action, data = {}, mostrarLoader = true, maxReintentos = 3) {
+  let ultimoError = null;
+  
+  for (let intento = 1; intento <= maxReintentos; intento++) {
+    try {
+      if (mostrarLoader && intento === 1) {
+        mostrarCarga('Procesando solicitud...');
+      } else if (mostrarLoader && intento > 1) {
+        mostrarCarga(`Reintentando (${intento}/${maxReintentos})...`);
+      }
+      
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, data })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Error en la API');
+      }
+      
+      if (mostrarLoader) ocultarCarga();
+      return result.data;
+      
+    } catch (error) {
+      ultimoError = error;
+      console.error(`Intento ${intento}/${maxReintentos} fallido:`, error.message);
+      
+      if (intento < maxReintentos) {
+        const espera = Math.pow(2, intento - 1) * 1000;
+        await new Promise(resolve => setTimeout(resolve, espera));
+      }
+    }
+  }
+  
+  if (mostrarLoader) ocultarCarga();
+  throw new Error(`Error después de ${maxReintentos} intentos: ${ultimoError.message}`);
+}
+
+async function llamarAPIMultiple(acciones, mostrarLoader = true) {
+  if (mostrarLoader) mostrarCarga('Verificando información del paciente...');
+  
   try {
     const response = await fetch('/api/proxy-multiple', {
       method: 'POST',
@@ -136,6 +182,8 @@ async function llamarAPIMultiple(acciones) {
   } catch (error) {
     console.error('Error en llamarAPIMultiple:', error);
     throw error;
+  } finally {
+    if (mostrarLoader) ocultarCarga();
   }
 }
 
@@ -168,15 +216,12 @@ function limpiarMensajesError() {
 }
 
 function limpiarFormularios() {
-  // Limpiar formulario de consentimiento 1
   document.getElementById("cons1Nombre").value = "";
   document.getElementById("cons1Apellidos").value = "";
   document.getElementById("cons1Cedula").value = "";
   
-  // Limpiar formulario de consentimiento 2
   document.getElementById("cons2Cedula").value = "";
   
-  // Limpiar formulario de historia
   document.getElementById("historiaCedulaInput").value = "";
   document.getElementById("fechaNacimiento").value = "";
   document.getElementById("contacto").value = "";
@@ -195,7 +240,6 @@ function limpiarFormularios() {
   document.getElementById("sustanciasPsicoactivas").value = "";
   document.getElementById("tipoSustancia").value = "";
   
-  // Limpiar EPS
   const epsInput = document.getElementById("epsInput");
   const epsSelect = document.getElementById("eps");
   if (epsInput) epsInput.value = "";
@@ -204,10 +248,8 @@ function limpiarFormularios() {
   const radios = document.getElementsByName("fumaOpcion");
   for (let i = 0; i < radios.length; i++) radios[i].checked = false;
   
-  // Limpiar formulario de encuesta
   document.getElementById("cedulaEncuestaInput").value = "";
   
-  // Ocultar campos condicionales
   const camposCondicionales = document.querySelectorAll('.campo-condicional');
   camposCondicionales.forEach(campo => campo.style.display = 'none');
 }
@@ -308,14 +350,10 @@ function cargarConsentimiento(paciente, cedula) {
   
   let texto = consentimientoTextos[tipoConsentimientoActual];
   
-  // Reemplazar la línea de nombre en blanco
   texto = texto.replace(/________________________________________________/g, nombreCompleto);
-  
-  // Reemplazar los placeholders con los datos reales
   texto = texto.replace(/Nombre:\s*\n/g, `Nombre: ${nombreCompleto}\n`);
   texto = texto.replace(/Cédula:\s*\n/g, `Cédula: ${cedula}\n`);
   texto = texto.replace(/Fecha:\s*\n/g, `Fecha: ${fechaActual}\n`);
-  
   texto = texto.replace(/\n/g, '<br>');
   
   document.getElementById("consentimientoTexto").innerHTML = `<p style="white-space: pre-line;">${texto}</p>`;
@@ -331,9 +369,14 @@ function cargarConsentimiento(paciente, cedula) {
 function configurarSignaturePad() {
   const canvas = document.getElementById('signatureCanvas');
   if (canvas) {
-    // Tamaño normal en la interfaz: 500x200
-    canvas.width = canvas.clientWidth || 500;
-    canvas.height = canvas.clientHeight || 200;
+    const scaleFactor = 2;
+    canvas.width = 500 * scaleFactor;
+    canvas.height = 200 * scaleFactor;
+    canvas.style.width = '100%';
+    canvas.style.height = '200px';
+    
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scaleFactor, scaleFactor);
     
     signaturePad = new SignaturePad(canvas, {
       backgroundColor: 'rgb(255, 255, 255)',
@@ -360,13 +403,10 @@ async function guardarConsentimiento() {
     return;
   }
   
-  const firmaDataURL = signaturePad.toDataURL();
+  const firmaDataURL = signaturePad.toDataURL('image/jpeg', 0.85);
   const cedula = document.getElementById("cedulaPacienteConsentimiento").innerHTML;
   
-  const btn = document.getElementById("btnGuardarConsentimiento");
-  const textoOriginal = btn.innerText;
-  btn.innerText = "Guardando...";
-  btn.disabled = true;
+  mostrarCarga('Guardando consentimiento y generando PDF...');
   
   try {
     await llamarAPI('guardarConsentimientoConImagen', { 
@@ -375,14 +415,13 @@ async function guardarConsentimiento() {
       apellidos: datosPacienteConsentimiento.apellidos,
       tipo: tipoConsentimientoActual,
       firmaDataURL: firmaDataURL
-    });
+    }, false);
     
+    ocultarCarga();
     mostrar("consentimientoExitoso");
   } catch (error) {
+    ocultarCarga();
     mostrarErrorEn("consentimientoError", error.message);
-  } finally {
-    btn.innerText = textoOriginal;
-    btn.disabled = false;
   }
 }
 
@@ -406,7 +445,6 @@ function configurarEPS() {
   const epsContainer = document.getElementById("epsContainer");
   if (!epsContainer) return;
   
-  // Crear el input de búsqueda y el select desplegable
   epsContainer.innerHTML = `
     <input type="text" id="epsInput" placeholder="Buscar o escribir EPS..." autocomplete="off">
     <select id="eps" size="5" style="display:none; margin-top:5px;"></select>
@@ -415,7 +453,6 @@ function configurarEPS() {
   const epsInput = document.getElementById("epsInput");
   const epsSelect = document.getElementById("eps");
   
-  // Llenar el select con las EPS
   if (epsCache && epsCache.length > 0) {
     epsCache.forEach(eps => {
       if (eps && eps.toString().trim() !== "") {
@@ -427,7 +464,6 @@ function configurarEPS() {
     });
   }
   
-  // Función para filtrar EPS
   function filtrarEPS(busqueda) {
     const termino = busqueda.toLowerCase().trim();
     epsSelect.innerHTML = "";
@@ -445,7 +481,6 @@ function configurarEPS() {
       });
     }
     
-    // Si no hay coincidencias y hay texto escrito, permitir usar lo escrito
     if (opcionesMostradas === 0 && termino.length > 0) {
       const option = document.createElement("option");
       option.value = termino;
@@ -453,11 +488,9 @@ function configurarEPS() {
       epsSelect.appendChild(option);
     }
     
-    // Mostrar u ocultar el select
     epsSelect.style.display = termino.length > 0 || epsSelect.options.length > 0 ? 'block' : 'none';
   }
   
-  // Eventos
   epsInput.addEventListener('input', (e) => {
     filtrarEPS(e.target.value);
   });
@@ -467,7 +500,6 @@ function configurarEPS() {
   });
   
   epsInput.addEventListener('blur', () => {
-    // Pequeño delay para permitir click en el select
     setTimeout(() => {
       epsSelect.style.display = 'none';
     }, 200);
@@ -533,58 +565,51 @@ async function validarCedulaHistoria() {
 }
 
 function configurarCamposCondicionales() {
-  const enfermedades = document.getElementById("enfermedadesSistemicas");
-  const medicamentos = document.getElementById("tomaMedicamentos");
-  const psicologicos = document.getElementById("antecedentesPsicologicos");
-  const sustancias = document.getElementById("sustanciasPsicoactivas");
+  const configuraciones = [
+    { trigger: 'enfermedadesSistemicas', campo: 'campoTipoEnfermedad', limpiar: 'tipoEnfermedad' },
+    { trigger: 'tomaMedicamentos', campo: 'campoTipoMedicamento', limpiar: 'tipoMedicamento' },
+    { trigger: 'antecedentesPsicologicos', campo: 'campoTipoPsicologico', limpiar: 'tipoEnfermedadPsicologica' },
+    { trigger: 'sustanciasPsicoactivas', campo: 'campoTipoSustancia', limpiar: 'tipoSustancia' }
+  ];
+  
+  configuraciones.forEach(config => {
+    const trigger = document.getElementById(config.trigger);
+    const campo = document.getElementById(config.campo);
+    const limpiar = document.getElementById(config.limpiar);
+    
+    if (trigger && campo && trigger.dataset.listenerAdded !== 'true') {
+      trigger.addEventListener('change', () => {
+        campo.style.display = trigger.value === 'Sí' ? 'block' : 'none';
+        if (trigger.value !== 'Sí' && limpiar) limpiar.value = '';
+      });
+      trigger.dataset.listenerAdded = 'true';
+    }
+  });
+  
   const checkNo = document.getElementById("habitoNo");
   const checkLabios = document.getElementById("habitoLabios");
   const checkMejillas = document.getElementById("habitoMejillas");
   const checkLengua = document.getElementById("habitoLengua");
   
-  const toggleEnfermedad = () => {
-    document.getElementById("campoTipoEnfermedad").style.display = enfermedades.value === "Sí" ? "block" : "none";
-    if (enfermedades.value !== "Sí") document.getElementById("tipoEnfermedad").value = "";
-  };
-  const toggleMedicamento = () => {
-    document.getElementById("campoTipoMedicamento").style.display = medicamentos.value === "Sí" ? "block" : "none";
-    if (medicamentos.value !== "Sí") document.getElementById("tipoMedicamento").value = "";
-  };
-  const togglePsicologico = () => {
-    document.getElementById("campoTipoPsicologico").style.display = psicologicos.value === "Sí" ? "block" : "none";
-    if (psicologicos.value !== "Sí") document.getElementById("tipoEnfermedadPsicologica").value = "";
-  };
-  const toggleSustancia = () => {
-    document.getElementById("campoTipoSustancia").style.display = sustancias.value === "Sí" ? "block" : "none";
-    if (sustancias.value !== "Sí") document.getElementById("tipoSustancia").value = "";
-  };
-  
-  enfermedades.removeEventListener('change', toggleEnfermedad);
-  medicamentos.removeEventListener('change', toggleMedicamento);
-  psicologicos.removeEventListener('change', togglePsicologico);
-  sustancias.removeEventListener('change', toggleSustancia);
-  
-  enfermedades.addEventListener('change', toggleEnfermedad);
-  medicamentos.addEventListener('change', toggleMedicamento);
-  psicologicos.addEventListener('change', togglePsicologico);
-  sustancias.addEventListener('change', toggleSustancia);
-  
-  if (checkNo) {
-    checkNo.onchange = function() {
+  if (checkNo && checkNo.dataset.listenerAdded !== 'true') {
+    checkNo.addEventListener('change', function() {
       if (this.checked) {
-        checkLabios.checked = false;
-        checkMejillas.checked = false;
-        checkLengua.checked = false;
+        if (checkLabios) checkLabios.checked = false;
+        if (checkMejillas) checkMejillas.checked = false;
+        if (checkLengua) checkLengua.checked = false;
       }
-    };
+    });
+    checkNo.dataset.listenerAdded = 'true';
   }
+  
   [checkLabios, checkMejillas, checkLengua].forEach(chk => {
-    if (chk) {
-      chk.onchange = function() {
+    if (chk && chk.dataset.listenerAdded !== 'true') {
+      chk.addEventListener('change', function() {
         if (this.checked && checkNo && checkNo.checked) {
           checkNo.checked = false;
         }
-      };
+      });
+      chk.dataset.listenerAdded = 'true';
     }
   });
 }
@@ -606,16 +631,44 @@ function obtenerFumaSeleccionado() {
   return "";
 }
 
-// ========= GUARDAR HISTORIA CLÍNICA CON ÁREA AUTOMÁTICA =========
+// ========= GUARDAR HISTORIA CLÍNICA CON VALIDACIÓN ROBUSTA =========
 async function guardarHistoria() {
   const habitos = obtenerHabitosSeleccionados();
+  
+  const tieneNo = habitos.includes('No');
+  const tieneEspecificos = habitos.filter(h => h !== 'No');
+  
+  if (tieneNo && tieneEspecificos.length > 0) {
+    mostrarErrorEn("historiaError", 'Si selecciona "No presenta hábitos", no puede marcar hábitos específicos');
+    return;
+  }
+  
+  if (!tieneNo && tieneEspecificos.length === 0) {
+    mostrarErrorEn("historiaError", "Seleccione al menos un hábito oral o marque 'No'");
+    return;
+  }
+  
   const fuma = obtenerFumaSeleccionado();
   
   const semestre = parseInt(document.getElementById("semestre").value);
   const areaCalculada = semestre <= 4 ? "Preclínica" : "Clínica";
   
-  // Obtener el valor de EPS del input (que puede ser seleccionado o escrito manualmente)
   const epsValue = document.getElementById("epsInput") ? document.getElementById("epsInput").value.trim() : "";
+  
+  if (!epsValue) {
+    mostrarErrorEn("historiaError", "Seleccione o especifique una EPS");
+    return;
+  }
+  
+  if (epsValue.length < 3) {
+    mostrarErrorEn("historiaError", "El nombre de la EPS es demasiado corto");
+    return;
+  }
+  
+  if (epsCache && epsCache.length > 0 && !epsCache.some(eps => eps.toLowerCase() === epsValue.toLowerCase())) {
+    const continuar = confirm(`"${epsValue}" no está en la lista de EPS conocidas. ¿Desea usar este valor de todas formas?`);
+    if (!continuar) return;
+  }
   
   const datos = {
     nombre: pacienteActual.nombre,
@@ -651,20 +704,19 @@ async function guardarHistoria() {
     return;
   }
   
-  if (habitos.length === 0) {
-    mostrarErrorEn("historiaError", "Seleccione al menos una opción de hábitos orales");
-    return;
-  }
-  
   if (!fuma) {
     mostrarErrorEn("historiaError", "Seleccione una opción sobre consumo de cigarrillo/vape");
     return;
   }
 
+  mostrarCarga('Guardando historia clínica...');
+  
   try {
-    await llamarAPI('guardarHistoriaCompleta', datos);
+    await llamarAPI('guardarHistoriaCompleta', datos, false);
+    ocultarCarga();
     mostrar("registroExitoso");
   } catch (error) {
+    ocultarCarga();
     mostrarErrorEn("historiaError", error.message);
   }
 }
@@ -787,10 +839,14 @@ async function finalizarEncuesta() {
   mensajeDiv.style.display = "none";
   const cedula = pacienteActual.cedula;
 
+  mostrarCarga('Guardando respuestas de la encuesta...');
+  
   try {
-    await llamarAPI('guardarEncuesta', { cedula: cedula, respuestas: respuestas });
+    await llamarAPI('guardarEncuesta', { cedula: cedula, respuestas: respuestas }, false);
+    ocultarCarga();
     mostrar("encuestaExitosa");
   } catch (error) {
+    ocultarCarga();
     mostrarErrorEn("mensajeErrorPreguntas", error.message);
   }
 }
