@@ -7,3 +7,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18.17.1
+      - key: GAS_API_URL
+        value: https://script.google.com/macros/s/AKfycbycWLIA-2OuopBHEpT-98rG8WS0jr2xAwGj3CPsZ6kI312AvM6E82uY9N7qo4jJeetg5Q/exec
