@@ -13,8 +13,14 @@ const port = process.env.PORT || 3000;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// ========= URL DE APPS SCRIPT =========
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbycWLIA-2OuopBHEpT-98rG8WS0jr2xAwGj3CPsZ6kI312AvM6E82uY9N7qo4jJeetg5Q/exec';
+// ========= URL DE APPS SCRIPT DESDE VARIABLE DE ENTORNO =========
+const GAS_API_URL = process.env.GAS_API_URL || 'https://script.google.com/macros/s/AKfycbycWLIA-2OuopBHEpT-98rG8WS0jr2xAwGj3CPsZ6kI312AvM6E82uY9N7qo4jJeetg5Q/exec';
+
+if (!process.env.GAS_API_URL) {
+  console.warn('⚠️  GAS_API_URL no configurada, usando URL por defecto');
+}
+
+console.log(`API de GAS configurada en: ${GAS_API_URL}`);
 
 // Ruta principal
 app.get('/', (req, res) => {
