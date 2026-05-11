@@ -716,6 +716,14 @@ async function validarCedulaEncuesta() {
       return;
     }
     
+    // Verificar que el paciente tenga ID en Consentimientos
+    try {
+      await llamarAPI('obtenerDatosConsentimiento', { cedula: ced });
+    } catch (error) {
+      mostrarErrorEn("encuestaCedulaError", "No se encontró el registro del paciente en los consentimientos. Primero debe firmar el Consentimiento 1.");
+      return;
+    }
+    
     const paciente = await llamarAPI('obtenerDatosPaciente', { cedula: ced });
     pacienteActual = paciente;
     document.getElementById("nombrePacienteEncuesta").innerHTML = `${paciente.nombre} ${paciente.apellidos}`;
