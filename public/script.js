@@ -716,14 +716,6 @@ async function validarCedulaEncuesta() {
       return;
     }
     
-    // Verificar que el paciente tenga ID en Consentimientos
-    try {
-      await llamarAPI('obtenerDatosConsentimiento', { cedula: ced });
-    } catch (error) {
-      mostrarErrorEn("encuestaCedulaError", "No se encontró el registro del paciente en los consentimientos. Primero debe firmar el Consentimiento 1.");
-      return;
-    }
-    
     const paciente = await llamarAPI('obtenerDatosPaciente', { cedula: ced });
     pacienteActual = paciente;
     document.getElementById("nombrePacienteEncuesta").innerHTML = `${paciente.nombre} ${paciente.apellidos}`;
@@ -765,6 +757,7 @@ function mostrarPreguntas(preguntas) {
   mostrar("encuesta");
 }
 
+// ========= FINALIZAR ENCUESTA (CORREGIDA) =========
 async function finalizarEncuesta() {
   const respuestas = [];
   const preguntas = document.querySelectorAll(".pregunta");
@@ -795,11 +788,30 @@ async function finalizarEncuesta() {
   mensajeDiv.style.display = "none";
   const cedula = pacienteActual.cedula;
 
+  // CORREGIDO: Mostrar estado de carga mientras se guarda
+  const btnGuardar = document.querySelector('#encuesta button');
+  const textoOriginalBtn = btnGuardar ? btnGuardar.innerText : 'Guardar respuestas';
+  if (btnGuardar) {
+    btnGuardar.innerText = "Guardando...";
+    btnGuardar.disabled = true;
+  }
+
   try {
     await llamarAPI('guardarEncuesta', { cedula: cedula, respuestas: respuestas });
+    
+    // CORREGIDO: Asegurar que se muestre el mensaje de éxito
+    console.log('Encuesta guardada exitosamente');
     mostrar("encuestaExitosa");
+    
   } catch (error) {
+    console.error('Error al guardar encuesta:', error);
     mostrarErrorEn("mensajeErrorPreguntas", error.message);
+  } finally {
+    // CORREGIDO: Restaurar el botón
+    if (btnGuardar) {
+      btnGuardar.innerText = textoOriginalBtn;
+      btnGuardar.disabled = false;
+    }
   }
 }
 
